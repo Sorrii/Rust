@@ -25,9 +25,9 @@ fn cmmdc(mut a: u32, mut b: u32) -> u32 {
 }
 
 fn sing_99_bottles() -> () {
-    let mut bottles = 99;
-    let mut flag = 0; //am folosit un flag pentru a repeta cantecul doar de doua pentru a putea citi
-                      //si raspunsurile la ex 1 si ex 2
+    let mut bottles: u8 = 99;
+    let mut flag: u8 = 0; //am folosit un flag pentru a repeta cantecul doar de doua pentru a putea citi
+                          //si raspunsurile la ex 1 si ex 2
 
     loop {
         let plural = if bottles > 1 { "s" } else { "" };
@@ -39,7 +39,11 @@ fn sing_99_bottles() -> () {
             println!(
                 "{} bottle{} of beer on the wall!\n",
                 bottles - 1,
-                if bottles - 1 > 1 { "s" } else { "" }
+                if bottles - 1 > 1 || bottles - 1 == 0 {
+                    "s"
+                } else {
+                    ""
+                }
             );
 
             bottles -= 1;
