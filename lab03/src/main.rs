@@ -201,7 +201,7 @@ fn print_error(error: CharacterErrors) -> () {
 }
 
 fn test_ex4() -> () {
-    let mut c = 'a';
+    let mut c = 'A';
 
     for _ in 0..2 {
         match print_char(c) {
@@ -209,22 +209,22 @@ fn test_ex4() -> () {
             Err(error) => print_error(error),
         }
 
-        match to_uppercase(c) {
-            Ok(uppercase_c) => {
-                println!("Letter {} is now uppercase!", c);
-                c = uppercase_c;
-            }
-            Err(error) => print_error(error),
-        }
-
         match to_lowercase(c) {
             Ok(lowercase_c) => {
-                println!("Letter {} is now lowercase!", c);
                 c = lowercase_c;
+                println!("Letter {} is now lowercase!", c);
             }
             Err(error) => print_error(error),
         }
-
+        
+        match to_uppercase(c) {
+            Ok(uppercase_c) => {
+                c = uppercase_c;
+                println!("Letter {} is now uppercase!", c);
+            }
+            Err(error) => print_error(error),
+        }
+        
         match char_to_number(c) {
             Ok(number) => println!("Number in base 10 is {}", number),
             Err(error) => print_error(error),

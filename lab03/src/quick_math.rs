@@ -81,10 +81,8 @@ fn calculate(a: i32, b: i32, op: &str) -> Result<i32, MyAppErrors> {
 
 pub fn quick_math() -> () {
     println!("Welcome to quick math!\n");
-    println!("Write down a simple math equation");
     println!("Accepted equations: a + b, a - b, a * b, a / b, a % b");
-    println!("-> ");
-
+    println!("Write down a simple math equation: ");
     let mut number1: i32 = 0;
     let mut number2: i32 = 0;
     let mut op: &str = "";
