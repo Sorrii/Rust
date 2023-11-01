@@ -1,0 +1,11 @@
+#Hello World
+#Toate liniile erau comentate in "C:\\Windows\\System32\\drivers\\etc\\hosts"
+#am preluat datele de aici 
+
+127.0.0.1  localhost
+110.0.0.2  nuggethost
+
+#rustIsFun
+102.53.94.99 rhino   #source
+
+#yeehaw
