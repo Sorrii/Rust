@@ -1,0 +1,36 @@
+ping
+ping abc
+
+count
+count a b c
+count a
+count a             b
+   count a             b   
+
+times
+times
+times abc
+
+
+calculate 5 + 6
+calculate 6 / 0
+calculate
+
+COUNT a 
+ime
+mm
+pumg
+aa
+
+bm
+bm add
+bm search
+bm add foxes https://www.reddit.com/r/foxes/
+bm add rust_book https://doc.rust-lang.org/book/
+bm add foxes_pics https://www.boredpanda.com/beautiful-fox-pictures/
+
+bm search fox
+bm search rust
+bm search nothing
+
+stop
