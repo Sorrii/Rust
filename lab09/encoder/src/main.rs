@@ -1,9 +1,7 @@
 use std::env;
 use std::fs::File;
 use std::io::{self, Read, Write};
-use std::path::Path;
-use clap::Arg;
-use clap::App;
+use clap::{App, Arg};
 
 #[cfg(target_os = "windows")]
 const OS: &str = "Windows";
