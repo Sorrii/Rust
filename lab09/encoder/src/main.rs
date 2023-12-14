@@ -49,7 +49,6 @@ fn main() {
     .get_matches();
 
     if let (Some(input_path), Some(output_path)) = (matches.value_of("input"), matches.value_of("output")) {
-        // Encode data from the input file and write to the output file
         if let Err(err) = encode_file(input_path, output_path) {
             eprintln!("Error: {}", err);
         }
