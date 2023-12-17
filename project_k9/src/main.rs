@@ -1,17 +1,21 @@
 mod helper;
+mod pictures;
 use serenity::{
     async_trait,
     framework::standard::{
         macros::{command, group},
         {CommandResult, Configuration, StandardFramework},
+        Args, 
     },
     model::channel::Message,
-    prelude::*,
+    prelude::*, builder::{CreateMessage, CreateAttachment},
 };
+//use std::fs::File;
+//use std::path::Path;
 use std::env;
 
 #[group]
-#[commands(ping, quote)]
+#[commands(ping, quote, help, doctor)]
 struct General;
 
 struct Handler;
@@ -36,6 +40,15 @@ async fn main() {
     if let Err(why) = client.start().await {
         println!("An error occurred while running the client: {:?}", why);
     }
+}
+
+#[command]
+async fn help(ctx: &Context, msg: &Message) -> CommandResult {
+    let available_commands: String = String::from("Available commands: \n>quote\n>ping\n>doctor <number>");
+
+    msg.reply(ctx, available_commands).await?;
+    
+    Ok(())
 }
 
 #[command]
@@ -75,3 +88,44 @@ async fn quote(ctx: &Context, msg: &Message) -> CommandResult {
 
     Ok(())
 }
+
+#[command]
+async fn doctor(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    if args.is_empty() {
+        msg.reply(ctx, "Usage: >send_picture 1 <= number <= 13").await?;
+        return Ok(());
+    }
+
+    let index = args.single::<usize>()?;
+
+    if index < 1 || index > 13 {
+        msg.reply(ctx, "Invalid index - try 1 to 13").await?;
+        return Ok(());
+    }
+
+    let image_path = match pictures::get_image_path(index) {
+        Some(path) => path,
+        None => {
+            msg.reply(ctx, "Image not found").await?;
+            return Ok(());
+        }
+    };
+
+    if !std::path::Path::new(&image_path).exists() {
+        msg.reply(ctx, "File not found.").await?;
+        return Ok(());
+    }
+
+    let builder = CreateMessage::new()
+    .content("")
+    .add_file(CreateAttachment::path(image_path).await?);
+
+    let msg = msg.channel_id.send_message(&ctx.http, builder).await;
+    if let Err(why) = msg {
+        println!("Error sending message: {why:?}");
+    }
+
+    Ok(())
+}
+
+
