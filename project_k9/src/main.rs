@@ -1,6 +1,6 @@
 mod helper;
 mod pictures;
-use helper::{close_call, create_database, update_score};
+use helper::{close_call, create_database, update_score, get_user_points};
 use serenity::{
     all::ChannelId,
     async_trait,
@@ -18,7 +18,7 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 #[group]
-#[commands(ping, quote, help, doctor, answer)]
+#[commands(ping, quote, help, doctor, answer, points)]
 struct General;
 
 struct Handler;
@@ -315,6 +315,21 @@ async fn answer(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     msg.reply(ctx, "Incorrect answer! Try again!").await?;
                 }
             }
+        }
+    }
+
+    Ok(())
+}
+
+#[command]
+async fn points(ctx: &Context, msg: &Message) -> CommandResult {
+    match get_user_points(msg.author.clone().into()) {
+        Ok(points) => {
+            let reply_message = format!("You have {} points.", points);
+            msg.reply(ctx, &reply_message).await?;
+        }
+        Err(why) => {
+            println!("Error sending question: {:?}", why);
         }
     }
     Ok(())
