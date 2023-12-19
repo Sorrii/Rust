@@ -1,6 +1,6 @@
 mod helper;
 mod pictures;
-use helper::{close_call, create_database, update_score, get_user_points};
+use helper::{close_call, create_database, update_score, get_user_points, get_top_users};
 use serenity::{
     all::ChannelId,
     async_trait,
@@ -18,7 +18,7 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 #[group]
-#[commands(ping, quote, help, doctor, answer, points)]
+#[commands(ping, quote, help, doctor, answer, points, top)]
 struct General;
 
 struct Handler;
@@ -177,7 +177,7 @@ impl EventHandler for Handler {
         println!("{} is connected!", ready.user.name);
 
         let available_commands: String =
-            String::from("Available commands: \n>quote\n>ping\n>doctor <number>");
+            String::from("Available commands: \n>quote\n>ping\n>doctor <number>\n>answer (to answer the quiz question)\n>points\n>top");
         println!("{}", available_commands);
 
         let _ = create_database();
@@ -208,7 +208,7 @@ async fn main() {
 #[command]
 async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let available_commands: String =
-        String::from("Available commands: \n>quote\n>ping\n>doctor <number>\n>answer (to answer the quiz question)");
+        String::from("Available commands: \n>quote\n>ping\n>doctor <number>\n>answer (to answer the quiz question)\n>points\n>top");
 
     msg.reply(ctx, available_commands).await?;
 
@@ -329,7 +329,24 @@ async fn points(ctx: &Context, msg: &Message) -> CommandResult {
             msg.reply(ctx, &reply_message).await?;
         }
         Err(why) => {
-            println!("Error sending question: {:?}", why);
+            println!("Error replying: {:?}", why);
+        }
+    }
+    Ok(())
+}
+
+#[command]
+async fn top(ctx: &Context, msg: &Message) -> CommandResult {
+    match get_top_users() {
+        Ok(users) => {
+            let mut response = String::new();
+            for (index, (user_id, points)) in users.iter().enumerate() {
+                response.push_str(&format!("{}. <@{}> - {} points\n", index + 1, user_id, points));
+            }
+            msg.reply(ctx, response).await?; 
+        }
+        Err(why) => {
+            println!("Error showing the top users: {:?}", why);
         }
     }
     Ok(())

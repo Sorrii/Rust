@@ -52,3 +52,16 @@ pub fn get_user_points(user_id: UserId) -> Result<i32> {
 
     Ok(points)
 }
+
+pub fn get_top_users() -> Result<Vec<(i64, i32)>> {
+    let conn = Connection::open("scoreboard.db")?;
+    let mut stmt = conn.prepare("SELECT discord_id, points FROM scoreboard ORDER BY points DESC LIMIT 3")?;
+    let user_iter = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+
+    let mut users = Vec::new();
+    for user in user_iter {
+        users.push(user?);
+    }
+
+    Ok(users)
+}
