@@ -1,37 +1,200 @@
 mod helper;
 mod pictures;
+use helper::{close_call, create_database, update_score};
 use serenity::{
+    all::ChannelId,
     async_trait,
+    builder::{CreateAttachment, CreateMessage},
     framework::standard::{
         macros::{command, group},
-        {CommandResult, Configuration, StandardFramework},
-        Args, 
+        Args, {CommandResult, Configuration, StandardFramework},
     },
-    model::channel::Message,
-    prelude::*, builder::{CreateMessage, CreateAttachment},
+    model::{channel::Message, gateway::Ready},
+    prelude::*,
 };
-//use std::fs::File;
-//use std::path::Path;
-use std::env;
+use tokio::sync::Mutex;
+use std::{env, sync::Arc};
+use std::time::Duration;
+use tokio::time::sleep;
 
 #[group]
-#[commands(ping, quote, help, doctor)]
+#[commands(ping, quote, help, doctor, answer)]
 struct General;
 
 struct Handler;
 
+struct Quiz {
+    questions: Vec<(String, String)>,
+    current_question_index: Option<usize>,
+    index: usize,
+    current_question: String,
+    answered: bool,
+}
+
+impl Quiz {
+    fn new() -> Self {
+        let questions = vec![
+            (
+                String::from("Who is the first Doctor? -> use >answer to answer the question"),
+                String::from("William Hartnell"),
+            ),
+            (
+                String::from("What is the Doctor's home planet? -> use >answer to answer the question"),
+                String::from("Gallifrey"),
+            ),
+            (
+                String::from("Who are the Doctor's main enemies, known for their catchphrase 'Exterminate' -> use >answer to answer the question?"),
+                String::from("Daleks"),
+            ),
+            (
+                String::from("What is the name of the Doctor's time machine? -> use >answer to answer the question"),
+                String::from("TARDIS"),
+            ),
+            (
+                String::from("Who is the creator of the Daleks? -> use >answer to answer the question"),
+                String::from("Davros"),
+            ),
+            (
+                String::from("Which actor played the Tenth Doctor? -> use >answer to answer the question"),
+                String::from("David Tennant"),
+            ),
+            (
+                String::from("What species is the Master? -> use >answer to answer the question"),
+                String::from("Time Lord"),
+            ),
+            (
+                String::from("What is the name of the Doctor's robotic dog? -> use >answer to answer the question"),
+                String::from("K-9"),
+            ),
+            (
+                String::from("Who played the Fourth Doctor? -> use >answer to answer the question"),
+                String::from("Tom Baker"),
+            ),
+            (
+                String::from("What does TARDIS stand for? -> use >answer to answer the question"),
+                String::from("Time And Relative Dimension In Space"),
+            ),
+            (
+                String::from("Which Doctor Who story was the first to be broadcast in color? -> use >answer to answer the question"),
+                String::from("Spearhead from Space"),
+            ),
+            (
+                String::from("Which companion traveled with the Ninth and Tenth Doctors? -> use >answer to answer the question"),
+                String::from("Rose Tyler"),
+            ),
+            (
+                String::from("Who was the first female Doctor? -> use >answer to answer the question"),
+                String::from("Jodie Whittaker"),
+            ),
+            (
+                String::from("What is the signature tool used by the Doctor? -> use >answer to answer the question"),
+                String::from("Sonic Screwdriver"),
+            ),
+            (
+                String::from("What alien race looks like humanoid rhinos? -> use >answer to answer the question"),
+                String::from("Judoon"),
+            ),
+            (
+                String::from("What is the name of the Doctor's granddaughter? -> use >answer to answer the question"),
+                String::from("Susan Foreman"),
+            ),
+            (
+                String::from("Which Doctor had a distinctive long scarf? -> use >answer to answer the question"),
+                String::from("The Fourth Doctor (Tom Baker)"),
+            ),
+            (
+                String::from("Which actor played the Ninth Doctor? -> use >answer to answer the question"),
+                String::from("Christopher Eccleston"),
+            ),
+            (
+                String::from("Who is River Song to the Doctor? -> use >answer to answer the question"),
+                String::from("His wife"),
+            ),
+            (
+                String::from("What planet are the Sontarans from? -> use >answer to answer the question"),
+                String::from("Sontar"),
+            ),
+            (
+                String::from("Which race created the Reality Bomb? -> use >answer to answer the question"),
+                String::from("Daleks"),
+            ),
+            (
+                String::from("What is the name of the Doctor Who spin-off featuring a team of alien hunters? -> use >answer to answer the question"),
+                String::from("Torchwood"),
+            ),
+            (
+                String::from("Who is the 'impossible girl'? -> use >answer to answer the question"),
+                String::from("Clara Oswald"),
+            ),
+            (
+                String::from("What species is Madame Vastra? -> use >answer to answer the question"),
+                String::from("Silurian"),
+            ),
+            (
+                String::from("What does UNIT stand for in Doctor Who? -> use >answer to answer the question"),
+                String::from("Unified Intelligence Taskforce"),
+            ),
+        ];
+        
+
+        Quiz {
+            questions,
+            current_question_index: None,
+            index: 0,
+            current_question: String::new(),
+            answered: true,
+        }
+    }
+
+    fn generate_question(&mut self) {
+        if let Some((question, _answer)) = self.questions.get(self.index % self.questions.len()) {
+            self.current_question = question.to_string();
+            self.answered = false;
+            self.current_question_index = Some(self.index);
+            self.index += 1;
+        }
+    }
+
+    fn check_answer(&mut self, user_answer: &str) -> bool {
+        if let Some(index) = self.current_question_index {
+            if let Some((_question, expected_answer)) = self.questions.get(index) {
+                if let Some(_) = user_answer.to_lowercase().find(&expected_answer.to_lowercase()) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref QUIZ: Arc<Mutex<Quiz>> = Arc::new(Mutex::new(Quiz::new()));
+}
+
 #[async_trait]
-impl EventHandler for Handler {}
+impl EventHandler for Handler {
+    async fn ready(&self, ctx: Context, ready: Ready) {
+        println!("{} is connected!", ready.user.name);
+
+        let available_commands: String =
+            String::from("Available commands: \n>quote\n>ping\n>doctor <number>");
+        println!("{}", available_commands);
+
+        let _ = create_database();
+
+        tokio::spawn(post_question(ctx.clone(), 1186232393984643072.into()));
+    }
+}
 
 #[tokio::main]
 async fn main() {
     let framework = StandardFramework::new().group(&GENERAL_GROUP);
     framework.configure(Configuration::new().prefix(">"));
 
-    let token = env::var("DISCORD_TOKEN").expect("token");
+    let token = env::var("DISCORD_TOKEN").expect("Expected a token");
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
 
-    let mut client = Client::builder(token, intents)
+    let mut client = Client::builder(&token, intents)
         .event_handler(Handler)
         .framework(framework)
         .await
@@ -44,10 +207,11 @@ async fn main() {
 
 #[command]
 async fn help(ctx: &Context, msg: &Message) -> CommandResult {
-    let available_commands: String = String::from("Available commands: \n>quote\n>ping\n>doctor <number>");
+    let available_commands: String =
+        String::from("Available commands: \n>quote\n>ping\n>doctor <number>\n>answer (to answer the quiz question)");
 
     msg.reply(ctx, available_commands).await?;
-    
+
     Ok(())
 }
 
@@ -60,7 +224,7 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn quote(ctx: &Context, msg: &Message) -> CommandResult {
-    use helper::get_random_quote;
+    use helper::gen_random_string;
 
     let strings = vec![
         String::from("Whole worlds pivot on acts of imagination.\n \t - 13th Doctor"),
@@ -80,7 +244,7 @@ async fn quote(ctx: &Context, msg: &Message) -> CommandResult {
         String::from("Bowties are cool!\n \t - 11th Doctor")
     ];
 
-    if let Some(random_string) = get_random_quote(strings) {
+    if let Some(random_string) = gen_random_string(strings) {
         msg.reply(ctx, random_string).await?;
     } else {
         msg.reply(ctx, "No quotes available!").await?;
@@ -92,7 +256,8 @@ async fn quote(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 async fn doctor(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.is_empty() {
-        msg.reply(ctx, "Usage: >send_picture 1 <= number <= 13").await?;
+        msg.reply(ctx, "Usage: >send_picture 1 <= number <= 13")
+            .await?;
         return Ok(());
     }
 
@@ -117,15 +282,59 @@ async fn doctor(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     }
 
     let builder = CreateMessage::new()
-    .content("")
-    .add_file(CreateAttachment::path(image_path).await?);
+        .content("")
+        .add_file(CreateAttachment::path(image_path).await?);
 
     let msg = msg.channel_id.send_message(&ctx.http, builder).await;
     if let Err(why) = msg {
         println!("Error sending message: {why:?}");
-    }
+    };
 
     Ok(())
 }
 
+#[command]
+async fn answer(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let user_answer = args.rest();
 
+    let mut quiz = QUIZ.lock().await;
+    if quiz.check_answer(&user_answer) {
+        drop(quiz);
+
+        let _ = update_score(msg.author.clone().into(), 1);
+        msg.reply(ctx, "Correct answer! You got a point").await?;
+
+        let mut quiz = QUIZ.lock().await;
+        quiz.answered = true;
+    } else {
+        if let Some(index) = quiz.current_question_index {
+            if let Some((_question, actual_answer)) = quiz.questions.get(index) {
+                if close_call(&user_answer, actual_answer) {
+                    msg.reply(ctx, "Incorrect answer! You are close though! Try again!").await?;
+                } else {
+                    msg.reply(ctx, "Incorrect answer! Try again!").await?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+async fn post_question(ctx: Context, channel_id: ChannelId) {
+    loop {
+        sleep(Duration::from_secs(10)).await;
+
+        let mut quiz = QUIZ.lock().await;
+
+        if quiz.answered {
+            quiz.generate_question();
+
+            let question = quiz.current_question.clone();
+            let builder = CreateMessage::new().content(question);
+            let msg = channel_id.send_message(&ctx.http, builder).await;
+            if let Err(why) = msg {
+                println!("Error sending question: {:?}", why);
+            }
+        }
+    }
+}
