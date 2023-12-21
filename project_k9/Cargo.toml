@@ -13,3 +13,4 @@ image = "0.24.7"
 lazy_static = "1.4"
 strsim = "0.10.0"
 rusqlite = { version = "0.30.0", features = ["bundled"] }
+csv = "1.1"
